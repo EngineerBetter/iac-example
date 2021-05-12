@@ -1,14 +1,19 @@
 COLOUR_GREEN=\033[0;32m
+COLOUR_RED=\033[;31m
 COLOUR_NONE=\033[0m
 
 CLUSTER_PROD=terraform/deployments/cluster-prod
 
-deploy-cluster:
+terraform-init: guard-BOOTSTRAP_AWS_REGION guard-BOOTSTRAP_BUCKET_NAME guard-BOOTSTRAP_DYNAMO_TABLE_NAME
 	@terraform \
 		-chdir=$(CLUSTER_PROD) \
 		init \
-		-input=false
+		-backend-config=bucket=$(BOOTSTRAP_BUCKET_NAME) \
+		-backend-config=region=$(BOOTSTRAP_AWS_REGION) \
+		-backend-config=dynamodb_table=$(BOOTSTRAP_DYNAMO_TABLE_NAME) \
+		-backend=true
 
+deploy-cluster: terraform-init
 	@terraform \
 		-chdir=$(CLUSTER_PROD) \
 		apply \
@@ -29,3 +34,12 @@ deploy-sock-shop:
 		--kubeconfig=secrets/config-prod.yml \
 		apply \
 		--filename deployments/sock-shop/manifest.yml
+
+terraform-bootstrap:
+	./bootstrap/bootstrap.bash
+
+guard-%:
+	@ if [ "${${*}}" = "" ]; then \
+		printf '$(COLOUR_RED)Environment variable $* must be set$(COLOUR_NONE)\n' \
+		&& exit 1; \
+	fi

@@ -1,4 +1,8 @@
 terraform {
+  backend "s3" {
+    key = "prod"
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

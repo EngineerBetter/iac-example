@@ -228,3 +228,55 @@ make deploy-sock-shop
 # it is "Ready".
 kubectl --kubeconfig secrets/config-prod.yml get all -n sock-shop
 ```
+
+### Store `.tfstate` appropriately
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/01-starting...02-store-tf-state)
+
+In the previous step, Terraform's state (where Terraform remembers what is
+deployed at the moment) was stored locally on disk in a `.tfstate` file that was
+ignored by Git. This change introduces a remote store for that state such that
+it is no longer kept on your workstation.
+
+A bootstrap Make target as been added (`make terraform-bootstrap`) that will
+create the following AWS resources to manage state remotely:
+
+1. A S3 bucket to store the `.tfstate` file
+1. A DynamoDB table that is used as a lock such that simultaneous changes to the
+   infrastructure are prevented
+
+#### Following along
+
+```terminal
+# Set up the following environmental variables for the remote state. You may store
+these in a `.envrc` file if using `direnv`.
+
+# The region where state resources are to be created, we used `eu-west-2`
+export BOOTSTRAP_AWS_REGION={your_aws_region}
+
+# The name of the S3 bucket to store state, such as `terraform_state`
+export BOOTSTRAP_BUCKET_NAME={your_aws_bucket_name}
+
+# The DynamoDB table name used for locking, such as `terraform_lock`
+export BOOTSTRAP_DYNAMO_TABLE_NAME={your_dynamodb_table}
+
+# Create the bucket and locking table, the AWS CLI may display output to the
+# screen that you can dismiss by pressing `q`. Note that this script will fail
+# if run multiple times, we'll address this later.
+make terraform-bootstrap
+
+# Initializing again will configure your remote Terraform backend. You should
+# be prompted to decide if you'd like to migrate your local state to the S3
+# bucket, which you absolutely do.
+make terraform-init
+
+# Remove the now unnecessary local state files.
+rm terraform/deployments/cluster-prod/*.tfstate
+rm terraform/deployments/cluster-prod/*.tfstate.backup
+
+# Running deploy again should validate that nothing is going to change even
+# though we've changed where state is stored.
+make deploy-cluster
+
+# You're now finished with this section.
+```
