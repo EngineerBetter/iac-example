@@ -280,3 +280,42 @@ make deploy-cluster
 
 # You're now finished with this section.
 ```
+
+### Statically test IaC files
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/02-store-tf-state...03-static-test)
+
+In order to improve confidence in the correctness and safety of the resources
+deployed by Terraform and Kubernetes, static testing is introduced. Make sure
+your have your Snyk API token to hand that
+[you created earlier](https://github.com/EngineerBetter/iac-example#snyk-account-and-api-token).
+
+#### Following along
+
+```terminal
+# Used by the Snyk CLI for authentication when performing scans
+export SNYK_TOKEN={your_snyk_token}
+
+# Using the Terraform CLI, this task checks our Terraform files for correctness
+# and whether or not we're using deprecated Terraform features.
+make terraform-validate
+
+# This target uses Snyk to determine whether misconfigurations in the Terraform
+# definitions would result in issues (such as security issues leading to
+# exposure to risk).
+make snyk-test-terraform
+
+# This target uses the Snyk tool to perform a similar check against the
+# deployment manifest we used to deploy Sock Shop to Kubernetes. This target
+# will likely fail as there are issues with the Sock Shop manifest. We'll
+# ignore failure here for the time being but note that there are configuration
+# issues with this manifest identified by Snyk.
+make snyk-test-deployments
+
+# This is a convenience target that'll run the above three targets sequentially.
+make test
+```
+
+It is advisable to run `make test` prior to applying any changes to your
+infrastructure or application to increase your confidence. Later, it will be
+demonstrated how this may be automated.

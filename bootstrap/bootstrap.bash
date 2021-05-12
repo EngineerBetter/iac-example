@@ -25,9 +25,5 @@ function create_table() {
     --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
 }
 
-: "${BOOTSTRAP_AWS_REGION?BOOTSTRAP_AWS_REGION must be set}"
-: "${BOOTSTRAP_BUCKET_NAME?BOOTSTRAP_BUCKET_NAME must be set}"
-: "${BOOTSTRAP_DYNAMO_TABLE_NAME?BOOTSTRAP_DYNAMO_TABLE_NAME must be set}"
-
 create_bucket "$BOOTSTRAP_AWS_REGION" "$BOOTSTRAP_BUCKET_NAME"
 create_table "$BOOTSTRAP_AWS_REGION" "$BOOTSTRAP_DYNAMO_TABLE_NAME"
