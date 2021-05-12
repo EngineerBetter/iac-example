@@ -319,3 +319,35 @@ make test
 It is advisable to run `make test` prior to applying any changes to your
 infrastructure or application to increase your confidence. Later, it will be
 demonstrated how this may be automated.
+
+### Write files in a standardized way
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/03-static-test...04-linting-formatting)
+
+Keeping code standardized will improve readability of the files. We can enforce
+standardization using tools that are triggered by Make for convenience.
+
+#### Following along
+
+```terminal
+# This target uses Terraform's `fmt` subcommand to indicate when files are
+# formatted in a non-standard way. If it finds a formatting issue then it'll
+# fail and tell you what you need to do to fix it.
+make terraform-fmt-check
+
+# There are no formatting errors in the files, so the tool exits without error.
+# You can prove this by printing the exit code of the last command, which will be
+# 0.
+echo $?
+
+# This target uses tflint to to provide faster feedback for errors that are
+# _syntactically_ correct but _semantically_ incorrect (such as asking AWS to
+# create an instance type that does not exist).
+make terraform-lint
+```
+
+Try making edits to the files before running the checks again, to see if you can
+get them to output a warning.
+
+Seeing these commands pass successfully concludes this section. For convenience,
+both of these two tests are run within the existing target `make test`.

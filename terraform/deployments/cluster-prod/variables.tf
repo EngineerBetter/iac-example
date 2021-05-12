@@ -1,6 +1,6 @@
 variable "env_name" {
-    description = "Name of the cluster to deploy"
-    default = "prod"
+  description = "Name of the cluster to deploy"
+  default     = "prod"
 }
 
 variable "region" {

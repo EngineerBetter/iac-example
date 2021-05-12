@@ -1,9 +1,3 @@
-COLOUR_GREEN=\033[0;32m
-COLOUR_RED=\033[;31m
-COLOUR_NONE=\033[0m
-
-CLUSTER_PROD=terraform/deployments/cluster-prod
-
 # ===== Deployment ============================================================
 
 terraform-bootstrap: \
@@ -16,7 +10,7 @@ terraform-init: \
 	guard-BOOTSTRAP_AWS_REGION \
 	guard-BOOTSTRAP_BUCKET_NAME \
 	guard-BOOTSTRAP_DYNAMO_TABLE_NAME
-	@terraform \
+	terraform \
 		-chdir=$(CLUSTER_PROD) \
 		init \
 		-backend-config=bucket=$(BOOTSTRAP_BUCKET_NAME) \
@@ -25,14 +19,14 @@ terraform-init: \
 		-backend=true
 
 deploy-cluster: terraform-init
-	@terraform \
+	terraform \
 		-chdir=$(CLUSTER_PROD) \
 		apply \
 		-input=false \
 		-auto-approve
 
 deploy-sock-shop:
-	@kubectl \
+	kubectl \
 		--kubeconfig=secrets/config-prod.yml \
 		apply \
 		--filename deployments/sock-shop/manifest.yml
@@ -41,13 +35,21 @@ deploy-sock-shop:
 
 test: \
 	terraform-validate \
+	terraform-lint \
+	terraform-fmt-check \
 	snyk-test-terraform \
 	snyk-test-deployments
 
 terraform-validate:
-	terraform \
-		-chdir=$(CLUSTER_PROD) \
-		validate
+	terraform -chdir=$(CLUSTER_PROD) validate
+
+terraform-lint:
+	tflint $(CLUSTER_PROD)
+
+terraform-fmt-check:
+	@if ! terraform -chdir=$(CLUSTER_PROD) fmt -check -diff; then \
+		$(call print_fail,Run `terraform fmt $(CLUSTER_PROD)` to fix format errors); \
+	fi
 
 snyk-test-terraform: guard-SNYK_TOKEN
 	snyk iac test terraform/
@@ -56,6 +58,12 @@ snyk-test-deployments: guard-SNYK_TOKEN
 	snyk iac test deployments/
 
 # ===== Miscellaneous =========================================================
+
+COLOUR_GREEN=\033[0;32m
+COLOUR_RED=\033[;31m
+COLOUR_NONE=\033[0m
+
+CLUSTER_PROD=terraform/deployments/cluster-prod
 
 fetch-cluster-config:
 	@terraform \
