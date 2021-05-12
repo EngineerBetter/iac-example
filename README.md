@@ -351,3 +351,37 @@ get them to output a warning.
 
 Seeing these commands pass successfully concludes this section. For convenience,
 both of these two tests are run within the existing target `make test`.
+
+### Automatically format, lint and test before committing changes
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/04-linting-formatting...05-pre-commit-hook)
+
+Until now, the person making changes had to remember to to run tests and checks
+prior to applying changes to either Terraform or Kubernetes. In this change, [a
+pre-commit hook](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) is
+configured such that fast tests are run automatically when checking in new
+changes to Git.
+
+#### Following along
+
+```terminal
+# Configure the pre-commit hook. After running this, each time a commit is made
+# Git will run the targets `terraform-validate`, `terraform-lint` and
+# `terraform-fmt-check`. Only these tests are run because they are fast.
+make configure-pre-commit-hook
+
+# Try making a simple commit to see the hook trigger.
+touch a-new-file
+git add a-new-file
+git commit -m "testing the pre-commit hook"
+
+# You'll see the tests running automatically.
+```
+
+Having configured your pre-commit hook, you've finished this section.
+
+#### Removing the Git hook
+
+You may wish to remove the git hook in future or disable it temporarily. To
+remove the hook run `rm .git/hooks/pre-commit`. It can be re-enabled by running
+`make configure-pre-commit-hook` again.

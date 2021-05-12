@@ -65,6 +65,13 @@ COLOUR_NONE=\033[0m
 
 CLUSTER_PROD=terraform/deployments/cluster-prod
 
+configure-pre-commit-hook:
+	@echo \
+		"make terraform-validate; make terraform-lint; make terraform-fmt-check" \
+		> .git/hooks/pre-commit
+	@chmod +rx .git/hooks/pre-commit
+	@$(call print_success,Configured pre-commit hook)
+
 fetch-cluster-config:
 	@terraform \
 		-chdir=$(CLUSTER_PROD) \
