@@ -19,8 +19,8 @@ terraform-init: \
 		-backend=true
 
 terraform-plan: terraform-init
-	terraform -chdir=$(CLUSTER_PROD) plan -out $$( pwd )/build/tfplan
-	terraform -chdir=$(CLUSTER_PROD) show -json $$( pwd )/build/tfplan > build/tfplan.json
+	terraform -chdir=$(CLUSTER_PROD) plan -out "$$( pwd )/build/tfplan"
+	terraform -chdir=$(CLUSTER_PROD) show -json "$$( pwd )/build/tfplan" > build/tfplan.json
 
 deploy-cluster: terraform-plan snyk-test-plan
 	rm build/tfplan.json
@@ -29,7 +29,7 @@ deploy-cluster: terraform-plan snyk-test-plan
 		apply \
 		-input=false \
 		-auto-approve \
-		$$( pwd )/build/tfplan
+		"$$( pwd )/build/tfplan"
 	rm build/tfplan
 
 deploy-sock-shop:
@@ -37,6 +37,19 @@ deploy-sock-shop:
 		--kubeconfig=secrets/config-prod.yml \
 		apply \
 		--filename deployments/sock-shop/manifest.yml
+
+# ===== Destroy ===============================================================
+
+delete-sock-shop:
+	kubectl \
+		--kubeconfig=secrets/config-prod.yml \
+		delete \
+		--filename deployments/sock-shop/manifest.yml \
+		--ignore-not-found=true \
+		--wait=true
+
+destroy-cluster:
+	terraform -chdir=$(CLUSTER_PROD) destroy -input=false -auto-approve
 
 # ===== Tests & Checks ========================================================
 
@@ -62,7 +75,11 @@ snyk-test-terraform: guard-SNYK_TOKEN
 	snyk iac test terraform/
 
 snyk-test-deployments: guard-SNYK_TOKEN
+ifdef IGNORE_SNYK_TEST_DEPLOYMENTS_FAILURE
+	snyk iac test deployments/ || true
+else
 	snyk iac test deployments/
+endif
 
 snyk-test-plan: guard-SNYK_TOKEN
 ifdef IGNORE_SNYK_TEST_PLAN_FAILURE
@@ -71,6 +88,38 @@ else
 	snyk iac test --scan=planned-values build/tfplan.json
 endif
 
+# ===== Jenkins ===============================================================
+
+jenkins-%-deploy-pipeline: \
+	guard-JENKINS_CLI \
+	guard-JENKINS_URL \
+	guard-JENKINS_PASSWORD \
+	guard-JENKINS_USERNAME
+	@sed \
+		-e 's#REPLACE_ME_REPOSITORY_URL#$(REPOSITORY_URL)#' \
+		pipelines/deploy.xml \
+		| java \
+			-jar $(JENKINS_CLI) \
+			-s $(JENKINS_URL) \
+			-auth "$(JENKINS_USERNAME):$${JENKINS_PASSWORD}" \
+			$*-job 'Deploy (prod)'
+	@$(call print_success,OK)
+
+jenkins-%-destroy-pipeline: \
+	guard-JENKINS_CLI \
+	guard-JENKINS_URL \
+	guard-JENKINS_PASSWORD \
+	guard-JENKINS_USERNAME
+	@sed \
+		-e 's#REPLACE_ME_REPOSITORY_URL#$(REPOSITORY_URL)#' \
+		pipelines/destroy.xml \
+		| java \
+			-jar $(JENKINS_CLI) \
+			-s $(JENKINS_URL) \
+			-auth "$(JENKINS_USERNAME):$${JENKINS_PASSWORD}" \
+			$*-job 'Destroy (prod)'
+	@$(call print_success,OK)
+
 # ===== Miscellaneous =========================================================
 
 COLOUR_GREEN=\033[0;32m
@@ -78,6 +127,10 @@ COLOUR_RED=\033[;31m
 COLOUR_NONE=\033[0m
 
 CLUSTER_PROD=terraform/deployments/cluster-prod
+
+GITHUB_ORG ?= EngineerBetter
+GITHUB_REPOSITORY ?= iac-example
+REPOSITORY_URL=git@github.com:$(GITHUB_ORG)/$(GITHUB_REPOSITORY).git
 
 configure-pre-commit-hook:
 	@echo \

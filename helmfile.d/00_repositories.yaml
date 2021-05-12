@@ -1,0 +1,3 @@
+repositories:
+- name: jenkins
+  url: https://charts.jenkins.io

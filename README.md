@@ -413,3 +413,147 @@ IGNORE_SNYK_TEST_PLAN_FAILURE=true make deploy-cluster
 
 This concludes this section, where deploys with the feature toggle should report
 no deployment changes, but warn about configuration issues.
+
+### Automatically test and apply IaC
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/06-dynamic-test...07-automatically-apply)
+
+Prior to this change, deployments and tests have been run locally on development
+machines. This presents a few issues, the most important of which being that an
+engineer making deploys could forget to run tests prior to deploying and that
+it's difficult for other contributors to see what was deployed recently.
+
+To address these issues, Jenkins CI pipelines have been introduced. The Make
+targets that have been used for deploys and tests are run automatically whenever
+Jenkins detects a code change.
+
+Each time a commit is pushed to this repository, the `Deploy` pipeline is
+triggered. This pipeline does the following each time it is run, in this order:
+
+1. Run `make terraform-init`
+2. In parallel, run:
+   - `make terraform-validate`
+   - `make terraform-lint`
+   - `make terraform-fmt-check`
+   - `make snyk-test-terraform`
+   - `make snyk-test-deployments`
+3. Run `make deploy-cluster`
+4. Run `make deploy-sock-shop`
+
+At each push to this repository, all tests are run, the Kubernetes cluster is
+deployed and the Sock Shop application is deployed. By using this, we need not
+fear that we forget to run tests prior to making changes to the infrastructure.
+We also now have a view of the history of changes through Jenkins CI build
+history.
+
+A `Destroy` pipeline has also been created. This pipeline is disabled
+by default to prevent accidental running, as its role is to destroy the
+application and Kubernetes cluster. While you're unlikely to want to do this
+for your production deployments, this functionality will become useful in later
+commits when we look at using multiple environments.
+
+#### Following along
+
+You may already have access to a running Jenkins instance. If you don't, please
+follow the instructions in [JENKINS.md](/JENKINS.md) to deploy Jenkins locally.
+
+In order to run our Make targets in Jenkins, we'll need to let Jenkins know
+about a few credentials. Refer to the
+[Jenkins documentation for configuring credentials](https://www.jenkins.io/doc/book/using/using-credentials/).
+Below are a list of credentials we'll need, including their key and type. Their
+values are the same as those you've already configured in earlier steps.
+
+| Key                         | Type        |
+|-----------------------------|-------------|
+| SNYK_TOKEN                  | Secret text |
+| AWS_ACCESS_KEY_ID           | Secret text |
+| AWS_SECRET_ACCESS_KEY       | Secret text |
+| BOOTSTRAP_AWS_REGION        | Secret text |
+| BOOTSTRAP_BUCKET_NAME       | Secret text |
+| BOOTSTRAP_DYNAMO_TABLE_NAME | Secret text |
+
+```terminal
+# In order to create pipelines in our Jenkins instance, we'll need to set a few
+# environment variables.
+# You may instead store these in a `.envrc` file if using `direnv`.
+
+# If you've forked this repo, these variables are used to instruct Jenkins on
+# where it can find your fork.
+# If different from "EngineerBetter":
+export GITHUB_ORG={your_github_org}
+# If different from "iac-example":
+export GITHUB_REPOSITORY={your_github_repository}
+
+# The Make targets we're about to use need to use the Jenkins CLI so we set this
+# to enable the target to find it.
+export JENKINS_CLI={your_cli_path}
+
+# The following variables are used to communicate and authenticate with Jenkins.
+
+# The URL to your Jenkins instance, if you used JENKINS.md then its value should
+# be `http://localhost/`.
+export JENKINS_URL={your_jenkins_url}
+
+# The following are the Jenkins credentials, if you used JENKINS.md then their
+# values are `admin` and `p4ssw0rd` respectively.
+export JENKINS_USERNAME={your_jenkins_username}
+export JENKINS_PASSWORD={your_jenkins_password}
+
+# The following will create two declarative pipelines (see
+# https://www.jenkins.io/doc/book/pipeline/syntax/) in Jenkins - one for
+# deploying the infrastructure and one for destroying it. After running these
+# commands, this section is concluded.
+make jenkins-create-deploy-pipeline
+make jenkins-create-destroy-pipeline
+```
+
+Explore the Jenkins web user interface to see your newly-created pipelines. You
+can trigger a build to see them in action.
+
+#### Notes: Updating the pipelines
+
+The first time we created the Jenkins pipelines, we used the commands just
+above. If you need to modify and set the pipelines again, you should use the
+Make targets `jenkins-update-deploy-pipeline` and
+`jenkins-update-destroy-pipeline`. This is because Jenkins' CLI has no way to
+"create a pipeline _or_ update it if it already exists" - they are separate
+operations.
+
+Pipeline metadata lives in [deploy.Jenkinsfile](/pipelines/deploy.Jenkinsfile)
+and [destroy.Jenkinsfile](/pipelines/destroy.Jenkinsfile). Since it can be
+difficult to read and change XML files, it's recommended you make any changes
+you need to make to pipeline metadata in the Jenkins UI and use the Jenkins CLI
+to get the pipeline definition, updating the XML files with the newly generated
+ones:
+
+```terminal
+java -jar \
+  $JENKINS_CLI \
+  -s $JENKINS_URL \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  get-job 'Deploy (prod)' \
+  > pipelines/deploy.xml
+```
+
+#### Notes: Docker images
+
+Our pipelines use Kubernetes agents to run their workloads. We've provided a
+Docker image that the pipelines already know about (engineerbetter/iac-example).
+
+If you wish to create your own Docker images for use by modifying the Dockerfile
+in this repository, you can run
+`docker build . -t {your_image_repository}/{your_image_name}:{your_image_tag}`
+to build the image and
+`docker push {your_image_repository}/{your_image_name}:{your_image_tag}` to push
+the image.
+
+Refer to the
+[Dockerhub getting started guide](https://docs.docker.com/docker-hub/) (or the
+documentation for whatever image repository you use).
+
+If you have built your own image and wish to use it, make sure you replace the
+image references in both [deploy.Jenkinsfile](/pipelines/deploy.Jenkinsfile) and
+[destroy.Jenkinsfile](/pipelines/destroy.Jenkinsfile). You can retrieve the
+SHA256 of your image with
+`docker image inspect {your_image_repository}/{your_image_name}:{your_image_tag}`
+and looking for the "RepoDigests".

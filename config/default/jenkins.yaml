@@ -1,0 +1,185 @@
+rbac:
+  readSecrets: true
+persistence:
+  enabled: true
+  size: 100Gi
+controller:
+  imagePullPolicy: IfNotPresent
+  JCasC:
+    enabled: true
+    defaultConfig: false
+    configScripts:
+      no-executors: |
+        jenkins:
+          numExecutors: 2
+      matrix-settings: |
+        jenkins:
+          authorizationStrategy:
+            globalMatrix:
+              permissions:
+                - "Overall/Administer:admin"
+                - "Credentials/Create:admin"
+                - "Overall/SystemRead:authenticated"
+                - "Overall/Read:authenticated"
+                - "Agent/ExtendedRead:authenticated"
+                - "Job/ExtendedRead:authenticated"
+                - "Overall/Read:anonymous"
+                - "Job/Read:anonymous"
+                - "View/Read:anonymous"
+      security-realm: |
+        jenkins:
+          securityRealm:
+            local:
+              allowsSignup: false
+              users:
+                - id: "admin"
+                  password: "p4ssw0rd"
+      misc-jenkins: |
+        jenkins:
+          remotingSecurity:
+            enabled: true
+          slaveAgentPort: 50000
+      crumb-issuer: |
+        jenkins:
+          crumbIssuer:
+            standard:
+              excludeClientIPFromCrumb: true
+      misc-security: |
+        security:
+          apiToken:
+            creationOfLegacyTokenEnabled: false
+            tokenGenerationOnCreationEnabled: false
+            usageStatisticsEnabled: true
+      misc-unclassified: |
+        unclassified:
+          gitSCM:
+            createAccountBasedOnEmail: false
+            globalConfigEmail: "oscar@example.com"
+            globalConfigName: "oscar"
+          pollSCM:
+            pollingThreadCount: 10
+          ansiColorBuildWrapper:
+            globalColorMapName: "xterm"
+              #          timestamper:
+              #            allPipelines: true
+      location: |
+        unclassified:
+          location:
+            adminAddress: "nobody@jenkins.io"
+            url: "http://localhost"
+      agent-settings: |
+        jenkins:
+          clouds:
+            - kubernetes:
+                containerCapStr: "100"
+                jenkinsUrl: "http://jenkins:8080"
+                maxRequestsPerHostStr: "300"
+                webSocket: true
+                name: "kubernetes"
+                namespace: "jenkins"
+                podRetention: "Never"
+                serverUrl: "https://kubernetes.default"
+                podLabels:
+                  # Required to be jenkins/<helm-release>-jenkins-slave as definede here
+                  # https://github.com/helm/charts/blob/ef0d749132ecfa61b2ea47ccacafeaf5cf1d3d77/stable/jenkins/templates/jenkins-master-networkpolicy.yaml#L27
+                  - key: "jenkins/jenkins-agent"
+                    value: "true"
+                templates:
+                  - name: jnlp
+                    nodeSelector: "kubernetes.io/os=linux"
+                    containers:
+                      - name: jnlp
+                        image: "jenkins/inbound-agent:latest-jdk11"
+                        resourceLimitCpu: "500m"
+                        resourceLimitMemory: "512Mi"
+                        resourceRequestCpu: "500m"
+                        resourceRequestMemory: "512Mi"
+                        args: 1d
+                        alwaysPullImage: true
+  overwritePlugins: true
+  installPlugins:
+    - ace-editor:1.1
+    - ansicolor:1.0.0
+    - authentication-tokens:1.4
+    - authorize-project:1.4.0  
+    - bootstrap4-api:4.6.0-3
+    - caffeine-api:2.9.1-23.v51c4e2c879c8
+    - checks-api:1.7.0
+    - cloudbees-folder:6.15
+    - configuration-as-code:1.51
+    - credentials:2.4.1
+    - credentials-binding:1.24
+    - display-url-api:2.3.5
+    - durable-task:1.36
+    - echarts-api:5.1.0-2
+    - envinject:2.4.0
+    - git:4.7.1
+    - git-client:3.7.1
+    - github:1.33.1
+    - github-api:1.123
+    - github-branch-source:2.10.4
+    - jackson2-api:2.12.3
+    - jjwt-api:0.11.2-9.c8b45b8bb173
+    - junit:1.49
+    - kubernetes:1.29.6
+    - kubernetes-client-api:4.13.3-1
+    - kubernetes-credentials:0.9.0
+    - kubernetes-credentials-provider:0.18-1
+    - lockable-resources:2.10
+    - mailer:1.34
+    - matrix-auth:2.6.7
+    - metrics:4.0.2.7
+    - pipeline-build-step:2.13
+    - pipeline-graph-analysis:1.10
+    - pipeline-graph-view:0.1
+    - pipeline-input-step:2.12
+    - pipeline-milestone-step:1.3.2
+    - pipeline-model-api:1.8.4
+    - pipeline-model-definition:1.8.4
+    - pipeline-stage-step:2.5
+    - pipeline-stage-view:2.19
+    - plain-credentials:1.7
+    - plugin-util-api:2.2.0
+    - scm-api:2.6.4
+    - script-security:1.77
+    - slack:2.48  
+    - snakeyaml-api:1.27.0
+    - ssh-agent:1.22
+    - ssh-credentials:1.18.1
+    - structs:1.23
+    - timestamper:1.13
+    - variant:1.4
+    - workflow-aggregator:2.6
+    - workflow-api:2.42
+    - workflow-basic-steps:2.23
+    - workflow-cps:2.92
+    - workflow-cps-global-lib:2.19
+    - workflow-durable-task-step:2.39
+    - workflow-job:2.40
+    - workflow-multibranch:2.24
+    - workflow-scm-step:2.12
+    - workflow-step-api:2.23
+    - workflow-support:3.8
+    - ws-cleanup:0.39  
+  sidecars:
+    configAutoReload:
+      env:
+        # https://github.com/kiwigrid/k8s-sidecar#configuration-environment-variables
+        - name: METHOD
+          # Polling mode (instead of watching kube API)
+          value: "SLEEP"
+        # https://github.com/kiwigrid/k8s-sidecar#configuration-environment-variables
+        - name: SLEEP_TIME
+          # Time in seconds between two polls
+          value: "60"
+  ingress:
+    enabled: true
+    annotations:  
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"  
+  probes:
+    startupProbe:
+      initialDelaySeconds: 240
+    livenessProbe:
+      initialDelaySeconds: 240
+    readinessProbe:
+      initialDelaySeconds: 240
