@@ -18,12 +18,19 @@ terraform-init: \
 		-backend-config=dynamodb_table=$(BOOTSTRAP_DYNAMO_TABLE_NAME) \
 		-backend=true
 
-deploy-cluster: terraform-init
+terraform-plan: terraform-init
+	terraform -chdir=$(CLUSTER_PROD) plan -out $$( pwd )/build/tfplan
+	terraform -chdir=$(CLUSTER_PROD) show -json $$( pwd )/build/tfplan > build/tfplan.json
+
+deploy-cluster: terraform-plan snyk-test-plan
+	rm build/tfplan.json
 	terraform \
 		-chdir=$(CLUSTER_PROD) \
 		apply \
 		-input=false \
-		-auto-approve
+		-auto-approve \
+		$$( pwd )/build/tfplan
+	rm build/tfplan
 
 deploy-sock-shop:
 	kubectl \
@@ -56,6 +63,13 @@ snyk-test-terraform: guard-SNYK_TOKEN
 
 snyk-test-deployments: guard-SNYK_TOKEN
 	snyk iac test deployments/
+
+snyk-test-plan: guard-SNYK_TOKEN
+ifdef IGNORE_SNYK_TEST_PLAN_FAILURE
+	snyk iac test --scan=planned-values build/tfplan.json || true
+else
+	snyk iac test --scan=planned-values build/tfplan.json
+endif
 
 # ===== Miscellaneous =========================================================
 

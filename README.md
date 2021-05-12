@@ -385,3 +385,31 @@ Having configured your pre-commit hook, you've finished this section.
 You may wish to remove the git hook in future or disable it temporarily. To
 remove the hook run `rm .git/hooks/pre-commit`. It can be re-enabled by running
 `make configure-pre-commit-hook` again.
+
+### Dynamically test against environments
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/05-pre-commit-hook...06-dynamic-test)
+
+To further increase confidence in the infrastructure being deployed, this change
+makes use of Snyk's Terraform plan-scanning feature.
+
+Rather than immediately applying changes to infrastructure, a plan is now
+generated first and scanned by Snyk before applying those changes. If Snyk finds
+issues with the generated plan then the deployment is aborted.
+
+#### Following along
+
+```terminal
+# Running this target now makes use of Snyk's IaC plan scanning. This will
+# likely fail when run and output useful information about properly configuring
+# the Terraform files.
+make deploy-cluster
+
+# Since we still need to deploy to production despite issues that may already
+# exist there, we've added a toggle to not consider finding configuration issues
+# an error, but merely report on issues found.
+IGNORE_SNYK_TEST_PLAN_FAILURE=true make deploy-cluster
+```
+
+This concludes this section, where deploys with the feature toggle should report
+no deployment changes, but warn about configuration issues.
