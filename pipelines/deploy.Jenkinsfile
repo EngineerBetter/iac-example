@@ -125,5 +125,16 @@ pipeline {
     always {
       cleanWs()
     }
+
+    failure {
+      slackSend(
+        message: "Deploy failed: <${env.BUILD_URL}|${env.JOB_NAME}#${env.BUILD_NUMBER}>",
+        color: 'danger',
+        username: 'The Butler',
+        tokenCredentialId: 'SLACK_WEBHOOK_CREDENTIAL',
+        baseUrl: 'https://hooks.slack.com/services/',
+        channel: env.SLACK_CHANNEL
+      )
+    }
   }
 }

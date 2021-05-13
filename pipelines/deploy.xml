@@ -12,6 +12,20 @@
   <description></description>
   <keepDependencies>false</keepDependencies>
   <properties>
+    <EnvInjectJobProperty plugin="envinject@2.4.0">
+      <info>
+        <propertiesContent>SLACK_CHANNEL=REPLACE_ME_SLACK_CHANNEL</propertiesContent>
+        <secureGroovyScript plugin="script-security@1.76">
+          <script></script>
+          <sandbox>false</sandbox>
+        </secureGroovyScript>
+        <loadFilesFromMaster>false</loadFilesFromMaster>
+      </info>
+      <on>true</on>
+      <keepJenkinsSystemVariables>true</keepJenkinsSystemVariables>
+      <keepBuildVariables>true</keepBuildVariables>
+      <overrideBuildParameters>false</overrideBuildParameters>
+    </EnvInjectJobProperty>
     <jenkins.model.BuildDiscarderProperty>
       <strategy class="hudson.tasks.LogRotator">
         <daysToKeep>-1</daysToKeep>
@@ -44,7 +58,7 @@
       </userRemoteConfigs>
       <branches>
         <hudson.plugins.git.BranchSpec>
-          <name>refs/tags/09-converge</name>
+          <name>refs/tags/10-alert</name>
         </hudson.plugins.git.BranchSpec>
       </branches>
       <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>

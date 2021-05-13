@@ -631,3 +631,43 @@ java -jar ${JENKINS_CLI} \
 Visit the [Deploy (prod)](http://localhost/job/Deploy%20(prod)/configure)
 configuration page, and see that there are now settings for an hourly build
 trigger.
+
+### Alert on failures
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/09-converge...10-alert)
+
+Prior to this change, failures in CI would only be visible by inspecting the
+Jenkins build history. This is fine when people are constantly checking Jenkins
+but that isn't always a realistic approach. Important information ought to be
+_pushed_ to the those who need to know it rather than expecting those people to
+be constantly checking for it.
+
+In this commit, our pipelines are configured to alert to a Slack channel with a
+link to the failing build, grabbing the attention of those able to fix the issue
+and ensuring the pipeline is failing for a smaller window of time.
+
+To enable Jenkins to post to Slack, you'll need to configure a Jenkins
+credential `SLACK_WEBHOOK_CREDENTIAL` of type "secret text". Configuring Jenkins
+credentials was covered in
+[Automatically test and apply IaC](https://github.com/EngineerBetter/iac-example/tree/10-alert#automatically-test-and-apply-iac).
+The value for this secret is created by following
+[Slack's tutorial on setting up webhooks](https://slack.com/intl/en-gb/help/articles/115005265063-Incoming-webhooks-for-Slack).
+
+#### Following along
+
+You will need to update your pipeline definitions for the alerting configuration to take effect:
+
+```terminal
+# Configure the slack channel that failures are reported to.
+# You may instead store these in a `.envrc` file if using `direnv`.
+export SLACK_CHANNEL={your_alerts_channel}
+
+# Update the pipelines, and trigger a build to force Jenkins to notice the
+# change in tag.
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+```

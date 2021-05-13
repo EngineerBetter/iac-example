@@ -95,9 +95,11 @@ jenkins-%-deploy-pipeline: \
 	guard-JENKINS_CLI \
 	guard-JENKINS_URL \
 	guard-JENKINS_PASSWORD \
-	guard-JENKINS_USERNAME
+	guard-JENKINS_USERNAME \
+	guard-SLACK_CHANNEL
 	@sed \
 		-e 's#REPLACE_ME_REPOSITORY_URL#$(REPOSITORY_URL)#' \
+		-e 's/REPLACE_ME_SLACK_CHANNEL/$(SLACK_CHANNEL)/' \
 		pipelines/deploy.xml \
 		| java \
 			-jar $(JENKINS_CLI) \
@@ -110,8 +112,10 @@ jenkins-%-destroy-pipeline: \
 	guard-JENKINS_CLI \
 	guard-JENKINS_URL \
 	guard-JENKINS_PASSWORD \
-	guard-JENKINS_USERNAME
+	guard-JENKINS_USERNAME \
+	guard-SLACK_CHANNEL
 	@sed \
+		-e 's/REPLACE_ME_SLACK_CHANNEL/$(SLACK_CHANNEL)/' \
 		-e 's#REPLACE_ME_REPOSITORY_URL#$(REPOSITORY_URL)#' \
 		pipelines/destroy.xml \
 		| java \
