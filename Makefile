@@ -4,7 +4,8 @@ terraform-bootstrap: \
 	guard-BOOTSTRAP_AWS_REGION \
 	guard-BOOTSTRAP_BUCKET_NAME \
 	guard-BOOTSTRAP_DYNAMO_TABLE_NAME
-	./bootstrap/bootstrap.bash
+	@./bootstrap/bootstrap.bash
+	@$(call print_success,OK)
 
 terraform-init: \
 	guard-BOOTSTRAP_AWS_REGION \

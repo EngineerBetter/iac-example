@@ -557,3 +557,49 @@ image references in both [deploy.Jenkinsfile](/pipelines/deploy.Jenkinsfile) and
 SHA256 of your image with
 `docker image inspect {your_image_repository}/{your_image_name}:{your_image_tag}`
 and looking for the "RepoDigests".
+
+### Make all jobs idempotent
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/07-automatically-apply...08-idempotent)
+
+When Jenkins CI was introduced in the previous commit, we automated almost
+everything. One thing that was missing was the 'bootstrap' Make target which
+created the AWS resources required for the Terraform backend. That target only
+works the first time it is run: if the resources already exist, it errors.
+
+In this commit we make the bootstrap Make target idempotent so that it may be
+safely run in CI along with all other Make targets, automating what was
+previously a manual step.
+
+Prior to creating the bootstrap S3 bucket and DynamoDB table, the script now
+checks if they already exist, so that it does not fail if they are already
+there. With this change it is now safe to run that target repeatedly and be sure
+that the end state will be the same.
+
+Given this new safety, this step is introduced into the CI pipeline in Jenkins,
+removing a dependency on what was previously a manual step.
+
+#### Following along
+
+Our Jenkins pipeline is currently configured to build from a specific tag (the
+tag of the last step). We need to tell Jenkins that it should now be looking at
+_this_ tag.
+
+Unfortunately Jenkins has a bug which means that it might not 'notice' that the
+tag it is being told to watch has changed. Triggering a build does force it to
+recognise that it is configured to watch a new tag.
+
+You will need to update your pipeline definitions, and also trigger a build to
+force it to update.
+
+```terminal
+# Update the pipelines
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+
+# Trigger a build
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+```
