@@ -23,6 +23,9 @@
     <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
     <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
       <triggers>
+        <hudson.triggers.TimerTrigger>
+          <spec>@hourly</spec>
+        </hudson.triggers.TimerTrigger>
         <hudson.triggers.SCMTrigger>
           <spec>H/2 * * * *</spec>
           <ignorePostCommitHooks>false</ignorePostCommitHooks>
@@ -41,7 +44,7 @@
       </userRemoteConfigs>
       <branches>
         <hudson.plugins.git.BranchSpec>
-          <name>refs/tags/08-idempotent</name>
+          <name>refs/tags/09-converge</name>
         </hudson.plugins.git.BranchSpec>
       </branches>
       <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>

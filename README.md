@@ -603,3 +603,31 @@ java -jar ${JENKINS_CLI} \
   -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
   build 'Deploy (prod)'
 ```
+
+### Continually apply IaC
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/08-idempotent...09-converge)
+
+The pipeline is now triggered at least once per hour, even if nothing changes.
+This is safe to do since our tasks are now idempotent and running the pipeline
+repeatedly ought to result in the same outcome.
+
+This change ensures that manual changes are overwritten at least every hour,
+encouraging change to move through CI via Git commits.
+
+#### Following along
+
+```terminal
+# Update the pipelines, and trigger a build to force Jenkins to notice the
+# change in tag.
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+```
+
+Visit the [Deploy (prod)](http://localhost/job/Deploy%20(prod)/configure)
+configuration page, and see that there are now settings for an hourly build
+trigger.
