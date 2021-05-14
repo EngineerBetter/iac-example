@@ -73,6 +73,15 @@ RUN \
 
 RUN \
   wget \
+    -O /tmp/conftest_0.25.0_Linux_x86_64.tar.gz \
+    https://github.com/open-policy-agent/conftest/releases/download/v0.25.0/conftest_0.25.0_Linux_x86_64.tar.gz \
+  && tar xzf /tmp/conftest_0.25.0_Linux_x86_64.tar.gz  --directory=/tmp \
+  && mv /tmp/conftest /usr/local/bin/conftest \
+  && chmod +rx /usr/local/bin/conftest \
+  && rm /tmp/conftest_0.25.0_Linux_x86_64.tar.gz
+
+RUN \
+  wget \
     -O /usr/local/bin/snyk \
     https://github.com/snyk/snyk/releases/download/v1.616.0/snyk-linux \
   && chmod +rx /usr/local/bin/snyk

@@ -1,5 +1,5 @@
-// engineerbetter/iac-example-ci:12-integration-test
-def ciImage = 'engineerbetter/iac-example-ci@sha256:deba261898d5950ff9b24e894434ca192a2e62fb8b299810bd8797cba6fe4284'
+// engineerbetter/iac-example-ci:13-record-versions
+def ciImage = 'engineerbetter/iac-example-ci@sha256:fb41d970f0bb20cd71ba855616910c4d0920cadb2fcc636086224ce61bf1936e'
 
 pipeline {
   agent {
@@ -65,6 +65,12 @@ pipeline {
         stage('Check format') {
           steps {
             sh 'make terraform-fmt-check'
+          }
+        }
+
+        stage('Policy test') {
+          steps {
+            sh 'make policy-test'
           }
         }
 

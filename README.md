@@ -756,3 +756,57 @@ java -jar ${JENKINS_CLI} \
 ```
 
 ...and look for the integration test job.
+
+### Record which versions work together
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/12-integration-test...13-record-versions)
+
+There are many ways to maintain a "bill of materials" that declares what is to
+be deployed and what is deployed at the moment. It's not quite true that we've
+been entirely declarative in our infrastructure and application deployments up
+to now. We're going to make sure that this repository contains specific version
+definitions for what is deployed right now.
+
+Our Kubernetes deployment manifest for Sock Shop has been referencing which
+images it needs by tag, for example `mongo:latest`. The image version that tags
+point to can be changed by the owner of the image. Indeed, some tags such as
+`latest` are _intended_ to be updated constantly. To be more confident in our
+deployment process being reproducible and idempotent, we'd like to make sure
+that the versions of images are not changing underneath us between deploys. This
+is achieved by referencing each image's SHA256, rather than their tags.
+
+For each image in the deployment manifest, we've updated the reference to the
+SHA256 of the image deployed at the moment.
+
+#### Following along
+
+You can run this test locally:
+
+```terminal
+# To ensure that we continue to reference images by SHA256, we've added conftest
+# to inspect deployment manifests and fail if it finds an image not referenced
+# by SHA256.
+make policy-test
+# Verify that the previous command exited successfully
+echo $?
+```
+
+You could try switching some of the versions to `latest` to see the test fail.
+
+Observe that the new Make target is also run by the latest version of the
+pipeline:
+
+```terminal
+# Update the pipelines, and trigger a build to force Jenkins to notice the
+# change in tag.
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+```
+
+...and look for the "Policy Test" job.
+
+ This section is now concluded.

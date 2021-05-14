@@ -99,13 +99,16 @@ else
 endif
 
 integration-test:
-	cd tests && \
+	cd tests/integration && \
 	SOCK_SHOP_URL="$$( kubectl \
-		--kubeconfig=../secrets/config-prod.yml \
+		--kubeconfig=../../secrets/config-prod.yml \
 		-n sock-shop \
 		get service/front-end \
 		-o jsonpath="{.status.loadBalancer.ingress[0].hostname}" \
 	)" $(GINKGO) --race --randomizeAllSpecs -r .
+
+policy-test:
+	conftest test -p tests/policies deployments/sock-shop/manifest.yml
 
 # ===== Jenkins ===============================================================
 

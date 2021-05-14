@@ -1,4 +1,4 @@
-module github.com/EngineerBetter/iac-example/tests
+module github.com/EngineerBetter/iac-example/tests/integration
 
 go 1.16
 
