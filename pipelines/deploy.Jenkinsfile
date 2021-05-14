@@ -1,5 +1,5 @@
-// engineerbetter/iac-example-ci:07-automatically-apply
-def ciImage = 'engineerbetter/iac-example-ci@sha256:fb389a09263ad4078b0c025356bc9ff541e07a5b407cbf31ccd6fe07145cd288'
+// engineerbetter/iac-example-ci:12-integration-test
+def ciImage = 'engineerbetter/iac-example-ci@sha256:deba261898d5950ff9b24e894434ca192a2e62fb8b299810bd8797cba6fe4284'
 
 pipeline {
   agent {
@@ -117,6 +117,18 @@ pipeline {
       steps {
         sh 'make fetch-cluster-config'
         sh 'make deploy-sock-shop'
+      }
+    }
+
+    stage('Integration tests') {
+      environment {
+        AWS_ACCESS_KEY_ID = credentials 'AWS_ACCESS_KEY_ID'
+        AWS_SECRET_ACCESS_KEY = credentials 'AWS_SECRET_ACCESS_KEY'
+      }
+
+      steps {
+        sh 'make fetch-cluster-config'
+        sh 'make integration-test'
       }
     }
   }

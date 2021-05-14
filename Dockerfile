@@ -12,6 +12,29 @@ RUN \
       build-essential \
   && rm -rf /var/lib/apt/lists/*
 
+# System test requirements
+RUN wget \
+    -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub \
+    | apt-key add - \
+  && echo \
+    "deb http://dl.google.com/linux/chrome/deb/ stable main" \
+    >> /etc/apt/sources.list.d/google.list \
+  && apt update --yes \
+  && DEBIAN_FRONTEND=noninteractive \
+    apt install --yes google-chrome-stable golang build-essential \
+  && rm -rf /var/lib/apt/lists/* \
+  && wget -q \
+    -O /tmp/chromedriver_linux64.zip \
+    https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_linux64.zip \
+  && unzip /tmp/chromedriver_linux64.zip \
+  && rm /tmp/chromedriver_linux64.zip \
+  && chmod +rx ./chromedriver \
+  && mv ./chromedriver /usr/local/bin/chromedriver \
+  && mkdir /go && chmod a+rwx /go \
+  && mkdir /gocache && chmod a+rwx /gocache
+
+ENV GOCACHE /gocache
+
 RUN \
   apt update \
   && DEBIAN_FRONTEND=noninteractive \

@@ -711,3 +711,48 @@ successful).
 You can validate that the script waited for readiness probes to return
 successfully by looking for a number of lines containing `condition met` in the
 build output.
+
+### Test that everything works together
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/11-smoke-test...12-integration-test)
+
+Our earlier smoke tests gave us some good assurances that we will catch issues
+with individual services, but only by testing one component of our deployment in
+isolation. In this section we introduce an example of slightly more rigorous
+testing. Ideally these tests would be maintained by the people who maintain the
+Sock Shop application code.
+
+Our new integration tests will load the front end and ensure that a particular
+section exists in that page content. Now we've guarded against more complicated
+failures such as the front end having no content but returning `200 OK`, or
+returning the wrong content.
+
+#### Following along
+
+You can run the integration tests locally, if you have all of the prerequisites
+installed:
+
+```terminal
+# Ensure that our cluster config is up to date so that we can communicate with
+# Kubernetes.
+make fetch-cluster-config
+
+# Run the integration tests from our local machine
+make integration-test
+```
+
+In this tag the integration tests are also run as part of the pipeline. To see
+them run automatically:
+
+```terminal
+# Update the pipelines, and trigger a build to force Jenkins to notice the
+# change in tag.
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+```
+
+...and look for the integration test job.

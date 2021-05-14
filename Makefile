@@ -98,6 +98,15 @@ else
 	snyk iac test --scan=planned-values build/tfplan.json
 endif
 
+integration-test:
+	cd tests && \
+	SOCK_SHOP_URL="$$( kubectl \
+		--kubeconfig=../secrets/config-prod.yml \
+		-n sock-shop \
+		get service/front-end \
+		-o jsonpath="{.status.loadBalancer.ingress[0].hostname}" \
+	)" $(GINKGO) --race --randomizeAllSpecs -r .
+
 # ===== Jenkins ===============================================================
 
 jenkins-%-deploy-pipeline: \
@@ -135,6 +144,8 @@ jenkins-%-destroy-pipeline: \
 	@$(call print_success,OK)
 
 # ===== Miscellaneous =========================================================
+
+GINKGO := go run github.com/onsi/ginkgo/ginkgo
 
 COLOUR_GREEN=\033[0;32m
 COLOUR_RED=\033[;31m
