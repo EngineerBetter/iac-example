@@ -203,13 +203,18 @@ spec:
             cpu: 100m
             memory: 100Mi
         ports:
-        - containerPort: 8079
+        - containerPort: &front-end-port 8079
         securityContext:
           runAsNonRoot: true
           runAsUser: 10001
           capabilities:
             drop: [all]
           readOnlyRootFilesystem: true
+        readinessProbe:
+          httpGet:
+            path: /
+            port: *front-end-port
+          periodSeconds: 20
       nodeSelector:
         beta.kubernetes.io/os: linux
 ---

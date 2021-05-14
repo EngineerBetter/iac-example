@@ -671,3 +671,43 @@ java -jar ${JENKINS_CLI} \
   -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
   build 'Deploy (prod)'
 ```
+
+### Smoke-test deployed applications
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/10-alert...11-smoke-test)
+
+Smoke tests are often used to get fast feedback on whether deployed systems are
+functioning as they expect. While not rigorous tests, they often answer the
+question "is something on fire?". In this commit, we introduce smoke tests after
+our infrastructure is deployed to increase our confidence that things are
+functioning as expected.
+
+We've leveraged functionality in Kubernetes to achieve rudimentary smoke tests -
+we've defined a readiness probe on the front end of Sock Shop that expects a
+`200 OK` response when fetching the landing page content.
+
+In addition, when deploying Sock Shop, we use `kubectl` to wait for all pods and
+resources to report that they are `ready`. Previously this wasn't checked for
+and we'd not have known that deploying Sock Shop had failed.
+
+#### Following along
+
+```terminal
+# Update the pipelines, and trigger a build to force Jenkins to notice the
+# change in tag.
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+```
+
+Triggering the "Deploy (prod)" pipeline and observing the "Deploy Sock
+Shop" stage should indicate that the pipeline waited until the pods reported
+they were ready (that pods were deployed and their readiness probes were
+successful).
+
+You can validate that the script waited for readiness probes to return
+successfully by looking for a number of lines containing `condition met` in the
+build output.

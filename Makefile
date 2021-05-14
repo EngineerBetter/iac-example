@@ -38,6 +38,15 @@ deploy-sock-shop:
 		--kubeconfig=secrets/config-prod.yml \
 		apply \
 		--filename deployments/sock-shop/manifest.yml
+	
+	kubectl \
+		--kubeconfig=secrets/config-prod.yml \
+		wait \
+		--namespace sock-shop \
+		--all=true \
+		--for condition=ready \
+		--timeout=600s \
+		pod
 
 # ===== Destroy ===============================================================
 
