@@ -10,37 +10,39 @@ terraform-bootstrap: \
 terraform-init: \
 	guard-BOOTSTRAP_AWS_REGION \
 	guard-BOOTSTRAP_BUCKET_NAME \
-	guard-BOOTSTRAP_DYNAMO_TABLE_NAME
+	guard-BOOTSTRAP_DYNAMO_TABLE_NAME \
+	guard-TF_VAR_env_name
 	terraform \
-		-chdir=$(CLUSTER_PROD) \
+		-chdir=$(CLUSTER) \
 		init \
+		-backend=true \
+		-reconfigure \
+		-input=false \
 		-backend-config=bucket=$(BOOTSTRAP_BUCKET_NAME) \
 		-backend-config=region=$(BOOTSTRAP_AWS_REGION) \
 		-backend-config=dynamodb_table=$(BOOTSTRAP_DYNAMO_TABLE_NAME) \
-		-backend=true
+		-backend-config=key=$(TF_VAR_env_name)
 
-terraform-plan: terraform-init
-	terraform -chdir=$(CLUSTER_PROD) plan -out "$$( pwd )/build/tfplan"
-	terraform -chdir=$(CLUSTER_PROD) show -json "$$( pwd )/build/tfplan" > build/tfplan.json
+terraform-plan: guard-TF_VAR_env_name terraform-init
+	terraform -chdir=$(CLUSTER) plan -out "$$( pwd )/build/tfplan"
+	terraform -chdir=$(CLUSTER) show -json "$$( pwd )/build/tfplan" > build/tfplan.json
 
-deploy-cluster: terraform-plan snyk-test-plan
+deploy-cluster: guard-TF_VAR_env_name terraform-plan snyk-test-plan
 	rm build/tfplan.json
 	terraform \
-		-chdir=$(CLUSTER_PROD) \
+		-chdir=$(CLUSTER) \
 		apply \
-		-input=false \
-		-auto-approve \
 		"$$( pwd )/build/tfplan"
 	rm build/tfplan
 
-deploy-sock-shop:
+deploy-sock-shop: guard-TF_VAR_env_name
 	kubectl \
-		--kubeconfig=secrets/config-prod.yml \
+		--kubeconfig=secrets/config-$(TF_VAR_env_name).yml \
 		apply \
 		--filename deployments/sock-shop/manifest.yml
 	
 	kubectl \
-		--kubeconfig=secrets/config-prod.yml \
+		--kubeconfig=secrets/config-$(TF_VAR_env_name).yml \
 		wait \
 		--namespace sock-shop \
 		--all=true \
@@ -50,16 +52,16 @@ deploy-sock-shop:
 
 # ===== Destroy ===============================================================
 
-delete-sock-shop:
+delete-sock-shop: guard-TF_VAR_env_name
 	kubectl \
-		--kubeconfig=secrets/config-prod.yml \
+		--kubeconfig=secrets/config-$(TF_VAR_env_name).yml \
 		delete \
 		--filename deployments/sock-shop/manifest.yml \
 		--ignore-not-found=true \
 		--wait=true
 
-destroy-cluster:
-	terraform -chdir=$(CLUSTER_PROD) destroy -input=false -auto-approve
+destroy-cluster: guard-TF_VAR_env_name terraform-init
+	terraform -chdir=$(CLUSTER) destroy
 
 # ===== Tests & Checks ========================================================
 
@@ -71,14 +73,14 @@ test: \
 	snyk-test-deployments
 
 terraform-validate:
-	terraform -chdir=$(CLUSTER_PROD) validate
+	terraform -chdir=$(CLUSTER) validate
 
 terraform-lint:
-	tflint $(CLUSTER_PROD)
+	tflint $(CLUSTER)
 
 terraform-fmt-check:
-	@if ! terraform -chdir=$(CLUSTER_PROD) fmt -check -diff; then \
-		$(call print_fail,Run `terraform fmt $(CLUSTER_PROD)` to fix format errors); \
+	@if ! terraform -chdir=$(CLUSTER) fmt -check -diff; then \
+		$(call print_fail,Run `terraform fmt $(CLUSTER)` to fix format errors); \
 	fi
 
 snyk-test-terraform: guard-SNYK_TOKEN
@@ -98,10 +100,10 @@ else
 	snyk iac test --scan=planned-values build/tfplan.json
 endif
 
-integration-test:
+integration-test: guard-TF_VAR_env_name
 	cd tests/integration && \
 	SOCK_SHOP_URL="$$( kubectl \
-		--kubeconfig=../../secrets/config-prod.yml \
+		--kubeconfig=../../secrets/config-$(TF_VAR_env_name).yml \
 		-n sock-shop \
 		get service/front-end \
 		-o jsonpath="{.status.loadBalancer.ingress[0].hostname}" \
@@ -117,16 +119,18 @@ jenkins-%-deploy-pipeline: \
 	guard-JENKINS_URL \
 	guard-JENKINS_PASSWORD \
 	guard-JENKINS_USERNAME \
-	guard-SLACK_CHANNEL
+	guard-SLACK_CHANNEL \
+	guard-TF_VAR_env_name
 	@sed \
 		-e 's#REPLACE_ME_REPOSITORY_URL#$(REPOSITORY_URL)#' \
 		-e 's/REPLACE_ME_SLACK_CHANNEL/$(SLACK_CHANNEL)/' \
+		-e 's/REPLACE_ME_ENV_NAME/$(TF_VAR_env_name)/' \
 		pipelines/deploy.xml \
 		| java \
 			-jar $(JENKINS_CLI) \
 			-s $(JENKINS_URL) \
 			-auth "$(JENKINS_USERNAME):$${JENKINS_PASSWORD}" \
-			$*-job 'Deploy (prod)'
+			$*-job 'Deploy ($(TF_VAR_env_name))'
 	@$(call print_success,OK)
 
 jenkins-%-destroy-pipeline: \
@@ -134,16 +138,18 @@ jenkins-%-destroy-pipeline: \
 	guard-JENKINS_URL \
 	guard-JENKINS_PASSWORD \
 	guard-JENKINS_USERNAME \
-	guard-SLACK_CHANNEL
+	guard-SLACK_CHANNEL \
+	guard-TF_VAR_env_name
 	@sed \
 		-e 's/REPLACE_ME_SLACK_CHANNEL/$(SLACK_CHANNEL)/' \
 		-e 's#REPLACE_ME_REPOSITORY_URL#$(REPOSITORY_URL)#' \
+		-e 's/REPLACE_ME_ENV_NAME/$(TF_VAR_env_name)/' \
 		pipelines/destroy.xml \
 		| java \
 			-jar $(JENKINS_CLI) \
 			-s $(JENKINS_URL) \
 			-auth "$(JENKINS_USERNAME):$${JENKINS_PASSWORD}" \
-			$*-job 'Destroy (prod)'
+			$*-job 'Destroy ($(TF_VAR_env_name))'
 	@$(call print_success,OK)
 
 # ===== Miscellaneous =========================================================
@@ -154,7 +160,7 @@ COLOUR_GREEN=\033[0;32m
 COLOUR_RED=\033[;31m
 COLOUR_NONE=\033[0m
 
-CLUSTER_PROD=terraform/deployments/cluster-prod
+CLUSTER=terraform/cluster
 
 GITHUB_ORG ?= EngineerBetter
 GITHUB_REPOSITORY ?= iac-example
@@ -167,14 +173,14 @@ configure-pre-commit-hook:
 	@chmod +rx .git/hooks/pre-commit
 	@$(call print_success,Configured pre-commit hook)
 
-fetch-cluster-config:
+fetch-cluster-config: guard-TF_VAR_env_name terraform-init
 	@terraform \
-		-chdir=$(CLUSTER_PROD) \
+		-chdir=$(CLUSTER) \
 		output \
 		-raw \
 		kubeconfig \
-		> ./secrets/config-prod.yml
-	@$(call print_success,Config written to secrets/config-prod.yml)
+		> ./secrets/config-$(TF_VAR_env_name).yml
+	@$(call print_success,Config written to secrets/config-$(TF_VAR_env_name).yml)
 
 guard-%:
 	@if [ "${${*}}" = "" ]; then \

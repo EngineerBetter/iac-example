@@ -6,7 +6,7 @@ module "eks" {
   subnets         = module.vpc.private_subnets
 
   tags = {
-    Environment = "prod"
+    Environment = var.env_name
   }
 
   vpc_id = module.vpc.vpc_id

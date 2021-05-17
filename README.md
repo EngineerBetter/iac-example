@@ -810,3 +810,45 @@ java -jar ${JENKINS_CLI} \
 ...and look for the "Policy Test" job.
 
  This section is now concluded.
+
+### Parameterize differences between environments
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/13-record-versions...14-parameterise-environments)
+
+Until this commit, we've been assuming that there is only one environment: prod.
+One of the key benefits of IaC is that it becomes easy to create and destroy
+infrastructure. To unlock this power we need to make very little change to our
+repository.
+
+An environment variable, `TF_VAR_env_name`, has been introduced that will be
+used by Terraform to determine which environment it is to deploy.
+
+#### Following along
+
+```terminal
+# Configure the environment we're interacting with. Make targets will fail if
+# run without an environment configured.
+# You may instead store this in a `.envrc` file if using `direnv`.
+export TF_VAR_env_name=prod
+
+# Update the pipelines, and trigger a build to force Jenkins to notice the
+# change in tag.
+make jenkins-update-deploy-pipeline
+make jenkins-update-destroy-pipeline
+java -jar ${JENKINS_CLI} \
+  -s ${JENKINS_URL} \
+  -auth "${JENKINS_USERNAME}:${JENKINS_PASSWORD}" \
+  build 'Deploy (prod)'
+
+# Switch environments to "staging". Every operation is now run against a
+# different environment.
+export TF_VAR_env_name=staging
+
+# Create deploy and destroy pipelines for the staging environment. These new
+# pipelines will operate on "staging" and not interfere with "prod".
+make jenkins-create-deploy-pipeline
+make jenkins-create-destroy-pipeline
+```
+
+You can create as many environment as you like, the only limit is your budget!
+Simply changing `TF_VAR_env_name`'s value will achieve that. This section is now concluded.

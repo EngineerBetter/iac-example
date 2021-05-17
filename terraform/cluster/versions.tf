@@ -1,7 +1,5 @@
 terraform {
-  backend "s3" {
-    key = "prod"
-  }
+  backend "s3" {}
 
   required_providers {
     aws = {

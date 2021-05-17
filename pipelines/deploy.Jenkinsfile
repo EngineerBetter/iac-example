@@ -20,6 +20,7 @@ pipeline {
   }
 
   environment {
+    TF_IN_AUTOMATION = 'true'
     BOOTSTRAP_AWS_REGION = credentials 'BOOTSTRAP_AWS_REGION'
     BOOTSTRAP_BUCKET_NAME = credentials 'BOOTSTRAP_BUCKET_NAME'
     BOOTSTRAP_DYNAMO_TABLE_NAME = credentials 'BOOTSTRAP_DYNAMO_TABLE_NAME'
@@ -107,6 +108,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials 'AWS_SECRET_ACCESS_KEY'
         SNYK_TOKEN = credentials 'SNYK_TOKEN'
         IGNORE_SNYK_TEST_PLAN_FAILURE = 'true'
+        TF_CLI_ARGS_apply = '-input=false -auto-approve'
       }
 
       steps {
