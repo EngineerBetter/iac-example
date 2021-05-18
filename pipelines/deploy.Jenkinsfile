@@ -1,5 +1,5 @@
-// engineerbetter/iac-example-ci:13-record-versions
-def ciImage = 'engineerbetter/iac-example-ci@sha256:fb41d970f0bb20cd71ba855616910c4d0920cadb2fcc636086224ce61bf1936e'
+// engineerbetter/iac-example-ci:15-promote
+def ciImage = 'engineerbetter/iac-example-ci@sha256:0bb2dd8e86b418cd96a3371887bf8d7aa929ef4c58616c98a425ff22bddc0257'
 
 pipeline {
   agent {
@@ -137,6 +137,24 @@ pipeline {
       steps {
         sh 'make fetch-cluster-config'
         sh 'make integration-test'
+      }
+    }
+
+    stage('Promote') {
+      steps {
+        script {
+          GIT_REVISION = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+        }
+
+        build(
+          job: 'Push Git Branch',
+          propagate: false,
+          wait: false,
+          parameters: [
+            string(name: 'GIT_REVISION', value: GIT_REVISION),
+            string(name: 'REFERENCE', value: env.PROMOTES_TO)
+          ]
+        )
       }
     }
   }

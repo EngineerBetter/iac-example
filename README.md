@@ -852,3 +852,68 @@ make jenkins-create-destroy-pipeline
 
 You can create as many environment as you like, the only limit is your budget!
 Simply changing `TF_VAR_env_name`'s value will achieve that. This section is now concluded.
+
+### Promote change
+
+* [See code changes](https://github.com/EngineerBetter/iac-example/compare/14-parameterise-environments...15-promote)
+
+Given how easy it is to create new environments now that they are parameterized,
+it is trivial to demonstrate another practice used in IaC: promotion.
+
+We've decided to use Git branches to implement promotion in Jenkins. When a
+deploy is successful, the branch called `passed_{env_name}` is rebased to the
+Git commit of what was just deployed. In practice we've created a `staging`
+environment and pipelines, and when a `staging` deploy is successful, it pushes
+the branch `passed_staging`. Our production environment is configured to deploy
+on change to the `passed_staging` branch and when successful, the `prod`
+pipeline pushes to `passed_prod`.
+
+So that knowledge of environment names exists outside of our heads, we've created
+an `environments.yml` file. The Make targets have been modified such that acting on an
+environment not referenced in that file will fail with a message explaining why.
+
+Each environment requires the `name` and `promotes_to` fields to be set in the
+`environments.yml` file. `promotes_to` is used to determine which branch to push
+_to_ when a deploy is successful. An optional `promotes_from` field may be set
+that determines which branch triggers the pipeline. It defaults to `main`.
+
+#### Notes
+
+Unfortunately the Jenkins Git plugin does not function correctly in declarative
+pipelines. A consequence of this is that we were unable to `git push` from our
+deploy pipelines. As a workaround we've configured the deploy pipeline to
+trigger a
+[freestyle project](https://docs.cloudbees.com/docs/admin-resources/latest/pipelines/learning-about-pipelines#_freestyle_projects)
+to perform `git push`.
+
+This made updating Jenkins pipelines a bit unwieldy since there are now at least
+three pipelines to set. As a convenience, `make jenkins-update-pipelines` and
+`make jenkins-create-pipelines` will set all pipelines for an environment.
+
+#### Following along
+
+```terminal
+# Remove the no-longer used environment variable. If using `direnv` then remove
+# it from your .envrc instead.
+unset TF_VAR_env_name
+
+# Use ENV_NAME to indicate which environment we're operating on. It must match
+# an environment referenced in environments.yml.
+# You may instead store this in a `.envrc` file if using `direnv`.
+export ENV_NAME=prod
+
+# Create the promotion pipeline used to promote change between environments.
+make jenkins-create-promote-pipeline
+
+# To move the tutorial on, make sure we instruct Jenkins to look at the source
+# code at this tag.
+make jenkins-update-pipelines
+
+# Update the staging pipelines too.
+export ENV_NAME=staging
+make jenkins-update-pipelines
+```
+
+This concludes this section. Feel free to push a trivial change and observe
+promotion in action. Pushes to `main` will trigger the staging pipeline, which
+will trigger the prod pipeline after success.

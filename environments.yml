@@ -1,0 +1,5 @@
+- name: prod
+  promotes_from: passed_staging
+  promotes_to: passed_prod
+- name: staging
+  promotes_to: passed_staging

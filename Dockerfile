@@ -85,3 +85,9 @@ RUN \
     -O /usr/local/bin/snyk \
     https://github.com/snyk/snyk/releases/download/v1.616.0/snyk-linux \
   && chmod +rx /usr/local/bin/snyk
+
+RUN \
+  wget \
+    -O /usr/local/bin/yq \
+    https://github.com/mikefarah/yq/releases/download/v4.9.1/yq_linux_amd64 \
+  && chmod +rx /usr/local/bin/yq

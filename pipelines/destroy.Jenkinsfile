@@ -1,5 +1,5 @@
-// engineerbetter/iac-example-ci:13-record-versions
-def ciImage = 'engineerbetter/iac-example-ci@sha256:fb41d970f0bb20cd71ba855616910c4d0920cadb2fcc636086224ce61bf1936e'
+// engineerbetter/iac-example-ci:15-promote
+def ciImage = 'engineerbetter/iac-example-ci@sha256:0bb2dd8e86b418cd96a3371887bf8d7aa929ef4c58616c98a425ff22bddc0257'
 
 pipeline {
   agent {

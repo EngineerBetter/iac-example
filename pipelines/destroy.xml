@@ -15,7 +15,7 @@
     <EnvInjectJobProperty plugin="envinject@2.4.0">
       <info>
         <propertiesContent>SLACK_CHANNEL=REPLACE_ME_SLACK_CHANNEL
-TF_VAR_env_name=REPLACE_ME_ENV_NAME</propertiesContent>
+ENV_NAME=REPLACE_ME_ENV_NAME</propertiesContent>
         <secureGroovyScript plugin="script-security@1.76">
           <script></script>
           <sandbox>false</sandbox>
@@ -39,7 +39,7 @@ TF_VAR_env_name=REPLACE_ME_ENV_NAME</propertiesContent>
       </userRemoteConfigs>
       <branches>
         <hudson.plugins.git.BranchSpec>
-          <name>refs/tags/14-parameterise-environments</name>
+          <name>refs/heads/REPLACE_ME_PROMOTES_TO</name>
         </hudson.plugins.git.BranchSpec>
       </branches>
       <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
