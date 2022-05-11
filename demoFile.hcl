@@ -6,7 +6,7 @@ resource "aws_ecr_repository" "foo" {
   }
 }
 
-# ruleid: ecr-image-scan-on-push
+
 resource "aws_ecr_repository" "foo" {
   name                 = "test-repository"
   image_tag_mutability = "MUTABLE"
@@ -15,11 +15,20 @@ resource "aws_ecr_repository" "foo" {
   }
 }
 
-# ruleid: ecr-image-scan-on-push
+
 resource "aws_ecr_repository" "repository" {
   name                 = "test-repository"
   image_tag_mutability = "MUTABLE"
   tags = {
     Name = "test-repository"
+  }
+}
+
+resource "aws_ebs_volume" "web_host_storage" {
+  availability_zone = "ap-southeast-2"
+  encrypted         = false
+  size = 1
+  tags = {
+    Name = "abcd-ebs"
   }
 }
